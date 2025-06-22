@@ -12,6 +12,9 @@ from milvus_haystack.milvus_embedding_retriever import MilvusEmbeddingRetriever
 
 import os
 
+# Import Docling components
+from docling.document_converter import DocumentConverter
+
 # --- Important Setup for DeepSeek and Ollama ---
 # For this script to work with DeepSeek, you need to:
 # 1. Install Ollama: Go to https://ollama.com/ and download/install Ollama for your OS.
@@ -26,6 +29,8 @@ import os
 #    pip install pymilvus milvus-haystack
 # 7. For local Milvus Lite, you don't need a separate server, it uses a local file.
 #    For a Milvus server (Docker/cloud), ensure it's running and accessible.
+# 8. Install Docling:
+#    pip install docling
 
 # --- Custom Component for Type Conversion ---
 @component
@@ -51,18 +56,17 @@ class DocumentPassthrough:
         return {"documents": documents}
 
 
-# --- Read content from crawled_documents.txt ---
+# --- Read URLs from crawled_documents.txt ---
 crawled_document_path = "crawled_documents.txt"
+urls_to_crawl = []
 if os.path.exists(crawled_document_path):
     with open(crawled_document_path, "r", encoding="utf-8") as f:
-        document_content = f.read()
-    print(f"Successfully read content from {crawled_document_path}")
+        urls_to_crawl = [line.strip() for line in f if line.strip()] # Read each non-empty line as a URL
+    print(f"Successfully read {len(urls_to_crawl)} URLs from {crawled_document_path}")
 else:
     print(f"Error: {crawled_document_path} not found.")
-    print("Please make sure 'crawled_documents.txt' exists in the same directory as the script.")
+    print("Please make sure 'crawled_documents.txt' exists in the same directory as the script and contains URLs.")
     # Exit or handle the error appropriately if the file is crucial
-    document_content = "" # Initialize with empty string to avoid errors later
-
 
 # --- Step 1: Initialize Document Store ---
 # Using MilvusDocumentStore
@@ -73,21 +77,51 @@ document_store = MilvusDocumentStore(
     # Or for a Milvus server:
     # connection_args={"uri": "http://localhost:19530"},
     drop_old=True,  # Drops existing collection with the same name if it exists (useful for fresh starts)
-    # collection_name="haystack_docs" # You can specify a collection name, defaults to "haystack_collection"
+    collection_name="docling_crawled_docs" # Using a specific collection name
 )
 print("MilvusDocumentStore initialized.")
 
-# --- Step 2: Prepare Documents for Indexing Pipeline ---
-# Use the content read from the file
-documents = [Document(content=document_content, meta={"source": crawled_document_path})]
+# --- Step 2: Fetch and Parse Documents using Docling ---
+docling_converter = DocumentConverter()
+crawled_haystack_documents = []
+
+if urls_to_crawl:
+    print("\nStarting document fetching and parsing with Docling...")
+    for url in urls_to_crawl:
+        try:
+            print(f"Processing URL: {url}")
+            # Docling converts the document from the URL
+            conv_result = docling_converter.convert(url)
+
+            if conv_result and conv_result.document:
+                # Extract markdown content from the DoclingDocument
+                # You can choose other export formats like .text or .json depending on your needs
+                doc_content = conv_result.document.export_to_markdown()
+                # Create a Haystack Document object
+                haystack_doc = Document(content=doc_content, meta={"source": url, "processed_by": "docling"})
+                crawled_haystack_documents.append(haystack_doc)
+                print(f"Successfully parsed and added document from {url}")
+            else:
+                print(f"Docling failed to convert or returned empty document for URL: {url}")
+        except Exception as e:
+            print(f"Error processing URL {url} with Docling: {e}")
+else:
+    print("No URLs to process from crawled_documents.txt.")
+
 
 document_splitter = DocumentSplitter(
     split_by="passage",
     split_length=1000,
     split_overlap=200,
 )
-split_documents = document_splitter.run(documents=documents)["documents"]
-print(f"Split document into {len(split_documents)} chunks.")
+# Split documents obtained from Docling
+if crawled_haystack_documents:
+    split_documents = document_splitter.run(documents=crawled_haystack_documents)["documents"]
+    print(f"Split Docling-processed documents into {len(split_documents)} chunks.")
+else:
+    split_documents = []
+    print("No documents to split after Docling processing.")
+
 
 # --- Step 3: Set up Indexing Pipeline ---
 indexing_pipeline = Pipeline()
@@ -96,10 +130,14 @@ indexing_pipeline.add_component("document_writer", DocumentWriter(document_store
 
 indexing_pipeline.connect("document_embedder.documents", "document_writer.documents")
 
-print("Starting document indexing...")
-indexing_pipeline.run({"document_embedder": {"documents": split_documents}})
-print("Document indexing complete.")
-print(f"Number of documents in Milvus: {document_store.count_documents()}")
+if split_documents:
+    print("Starting document indexing...")
+    indexing_pipeline.run({"document_embedder": {"documents": split_documents}})
+    print("Document indexing complete.")
+    print(f"Number of documents in Milvus: {document_store.count_documents()}")
+else:
+    print("No documents to index in Milvus.")
+
 
 # --- Step 4: Set up Query Pipeline (RAG Pipeline) ---
 query_pipeline = Pipeline()
@@ -118,6 +156,7 @@ If the answer is not in the context, say "I don't have enough information to ans
 Context:
 {% for document in documents %}
     {{ document.content }}
+    Source URL: {{ document.meta.source }}
 {% endfor %}
 
 Question: {{ question }}
@@ -138,7 +177,7 @@ print("Haystack RAG query pipeline set up with Milvus.")
 
 # --- Step 5: Interact with the Chatbot ---
 print("\n--- Q&A Chatbot Ready (using Haystack and DeepSeek via Ollama, with Milvus) ---")
-print(f"Ask questions about the content from '{crawled_document_path}'.")
+print(f"Ask questions about the content from the URLs listed in '{crawled_document_path}'.")
 print("Type 'exit' to quit.")
 
 while True:
@@ -154,8 +193,8 @@ while True:
     try:
         response = query_pipeline.run(
             {
-                "query_embedder": {"text": query + 'with document url'},
-                "prompt_builder": {"question": query + 'with document url'},
+                "query_embedder": {"text": query}, # Removed 'with document url' here as prompt template handles it
+                "prompt_builder": {"question": query},
             }
         )
 
