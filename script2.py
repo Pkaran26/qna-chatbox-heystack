@@ -53,6 +53,7 @@ class DocumentPassthrough:
 
 # --- Sample Document (Replace with your actual document content) ---
 sample_document_content = """
+Document URL - https://docs.apiculus.com/docs/Subscribers/Compute/LinuxInstances/CreatingLinuxInstances
 To create a Linux instance, follow these steps:
 
 Navigate to Compute > Linux Instances.
@@ -174,12 +175,12 @@ while True:
     try:
         response = query_pipeline.run(
             {
-                "query_embedder": {"text": query},
-                "prompt_builder": {"question": query},
+                "query_embedder": {"text": query + 'with document url'},
+                "prompt_builder": {"question": query + 'with document url'},
             }
         )
 
-        answer = response["llm"]["replies"][0]
+        answer = response["llm"]["replies"][0].text
 
         print(f"\nChatbot Answer: {answer}")
 
