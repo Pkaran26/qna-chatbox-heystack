@@ -51,39 +51,18 @@ class DocumentPassthrough:
         return {"documents": documents}
 
 
-# --- Sample Document (Replace with your actual document content) ---
-sample_document_content = """
-Document URL - https://docs.apiculus.com/docs/Subscribers/Compute/LinuxInstances/CreatingLinuxInstances
-To create a Linux instance, follow these steps:
+# --- Read content from crawled_documents.txt ---
+crawled_document_path = "crawled_documents.txt"
+if os.path.exists(crawled_document_path):
+    with open(crawled_document_path, "r", encoding="utf-8") as f:
+        document_content = f.read()
+    print(f"Successfully read content from {crawled_document_path}")
+else:
+    print(f"Error: {crawled_document_path} not found.")
+    print("Please make sure 'crawled_documents.txt' exists in the same directory as the script.")
+    # Exit or handle the error appropriately if the file is crucial
+    document_content = "" # Initialize with empty string to avoid errors later
 
-Navigate to Compute > Linux Instances.
-Click on NEW LINUX INSTANCE button. Create Linux Instance
-Choose an Availability Zone, which is the geographical region where your Instance will be deployed. Create Linux Instance
-Select a VPC or VNF network from the Select Network Dropdown and, select the appropriate tier listed in Select Network.
-note
-To add a Linux Instance to a VPC or VNF, you need to have a VPC or VNF configured with at least one tier.
-
-Select the OS Image to run on your Instance.
-Select the Compute Pack from the available compute collections.
-Select the Root Disk from the available options.
-Select the option to Protect this Instance. Compute Pack
-In Choose Instant Apps, select the available applications. To Verify/Login into your selected database, refer to App Overlays. Instant Apps
-Choose an Authentication Method:
-Use SSH key pair: To view all the SSH key pairs present in your account, click the Use SSH key pair option. If your account doesn’t have any SSH key pair, then you can click the Generate a new key pair or upload the key pair by clicking the Upload a key pair option.
-Use root user password: On selecting Use root user password, the Also email me the password option is displayed. If you select this option, the password, along with the details, for instance, will be emailed to your registered email ID.
-In the Name Your Linux Instance field, enter the desired name for your Linux Instance. The Instance name contains alphanumeric characters, underscore, dots and hyphens only.
-Verify the Estimated Cost of your Linux Instance based on the chosen specifications from the Summary and Estimated Costs Section (Here, both Hourly and Monthly Prices summary are displayed). Summary
-Select the I have read and agreed to the End User License Agreement and Privacy Policy option.
-Choose the BUY HOURLY or BUY MONTHLY option. A confirmation window appears and the price summary will be displayed along with the discount codes if you have any in your account.
-You can apply any of the discount codes listed by clicking on the APPLY button.
-You can also remove the applied discount code by clicking on the REMOVE button.
-You can cancel this action by clicking on the CANCEL button. Discount Codes
-Click CONFIRM to create the Linux Instance.
-note
-It might take up to 5-8 minutes for the Linux instance to get created. You may use the Cloud Console during this time, but it is advised that you do not refresh the browser window.
-
-Once ready, you get notified of this purchase on your registered email ID. To access the newly created Linux Instances, navigate to Compute > Linux Instances on the main navigation panel.
-"""
 
 # --- Step 1: Initialize Document Store ---
 # Using MilvusDocumentStore
@@ -94,13 +73,13 @@ document_store = MilvusDocumentStore(
     # Or for a Milvus server:
     # connection_args={"uri": "http://localhost:19530"},
     drop_old=True,  # Drops existing collection with the same name if it exists (useful for fresh starts)
-    # REMOVE THIS LINE: embedding_dim=384, # This is causing the TypeError
     # collection_name="haystack_docs" # You can specify a collection name, defaults to "haystack_collection"
 )
 print("MilvusDocumentStore initialized.")
 
 # --- Step 2: Prepare Documents for Indexing Pipeline ---
-documents = [Document(content=sample_document_content, meta={"source": "sample_document"})]
+# Use the content read from the file
+documents = [Document(content=document_content, meta={"source": crawled_document_path})]
 
 document_splitter = DocumentSplitter(
     split_by="passage",
@@ -159,7 +138,7 @@ print("Haystack RAG query pipeline set up with Milvus.")
 
 # --- Step 5: Interact with the Chatbot ---
 print("\n--- Q&A Chatbot Ready (using Haystack and DeepSeek via Ollama, with Milvus) ---")
-print("Ask questions about the Linux instance creation process (or your document content).")
+print(f"Ask questions about the content from '{crawled_document_path}'.")
 print("Type 'exit' to quit.")
 
 while True:
