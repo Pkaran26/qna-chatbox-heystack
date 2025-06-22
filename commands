@@ -1,0 +1,21 @@
+curl -fsSL https://ollama.com/install.sh | sh
+ollama run deepseek-r1:1.5b
+
+python -m venv myenv
+source /myenv/bin/activate
+
+pip install "haystack-ai>=2.0.0" sentence-transformers
+pip install ollama-haystack
+
+
+
+
+1. Install Ollama: Go to https://ollama.com/ and download/install Ollama for your OS.
+2. Pull a DeepSeek model using Ollama. For example, in your terminal:
+  ollama pull deepseek-coder:1.3b   Pull the correct model tag you intend to use
+  You can find other DeepSeek models on Ollama's website or DeepSeek's GitHub.
+3. Ensure the Ollama server is running (it usually starts automatically after installation).
+5. Make sure to install the Haystack Ollama integration:
+  pip install ollama-haystack   Corrected package name
+
+
