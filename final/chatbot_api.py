@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 app = Flask(__name__)
 from haystack import Pipeline, component, Document
 from haystack.components.embedders import SentenceTransformersTextEmbedder
@@ -20,16 +20,9 @@ class DocumentPassthrough:
     def run(self, documents: list[Document]):
         return {"documents": documents}
     
-document_store = MilvusDocumentStore(
-    connection_args={"uri": "./milvus_data.db"},
-    drop_old=False,
-    collection_name="docling_crawled_docs"
-)
-print("Connected to existing MilvusDocumentStore.")
-
 @app.route('/')
-def home():
-    return "Welcome to the Chat Bot"
+def serve_chat_ui():
+    return render_template('index.html')
 
 @app.route('/chat', methods=['POST'])
 def ask_question():
@@ -42,6 +35,14 @@ def ask_question():
         return jsonify({"error": "question is required"}), 400
 
     question = payload.get("question")
+
+    document_store = MilvusDocumentStore(
+        connection_args={"uri": "milvus_data.db"},
+        drop_old=False,
+        collection_name="docling_crawled_docs"
+    )
+    print("Connected to existing MilvusDocumentStore.")
+
 
     # Create RAG Pipeline
     query_pipeline = Pipeline()
