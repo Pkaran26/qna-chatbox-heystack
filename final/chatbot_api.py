@@ -25,7 +25,7 @@ class DocumentPassthrough:
 def home():
     return "Welcome to the Chat Bot"
 
-@app.route('/ask-question', methods=['POST'])
+@app.route('/chat', methods=['POST'])
 def ask_question():
     if not request.is_json:
         return jsonify({"error": "Request must be JSON"}), 400
