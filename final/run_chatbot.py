@@ -59,23 +59,40 @@ query_pipeline.connect("converter.messages", "llm.messages")
 
 # Chat loop
 print("\n--- Q&A Chatbot Ready ---")
-print("Ask your question or type 'exit' to quit.")
+# print("Ask your question or type 'exit' to quit.")
 
-while True:
-    question = input("\nYour question: ").strip()
-    if question.lower() == "exit":
-        print("Goodbye!")
-        break
-    if not question:
-        continue
+# while True:
+#     question = input("\nYour question: ").strip()
+#     if question.lower() == "exit":
+#         print("Goodbye!")
+#         break
+#     if not question:
+#         continue
 
-    try:
-        result = query_pipeline.run({
-            "embedder": {"text": question},
-            "prompt_builder": {"question": question}
+#     try:
+#         result = query_pipeline.run({
+#             "embedder": {"text": question},
+#             "prompt_builder": {"question": question}
+#         })
+#         answer = result["llm"]["replies"][0].text
+#         print(f"\nChatbot Answer: {answer}")
+#     except Exception as e:
+#         print(f"Error during Q&A: {e}")
+#         print("Check if Ollama is running and model is available.")
+
+result = query_pipeline.run({
+            "embedder": {"text": "How to create a linux instance"},
+            "prompt_builder": {"question": "How to create a linux instance"}
         })
-        answer = result["llm"]["replies"][0].text
-        print(f"\nChatbot Answer: {answer}")
-    except Exception as e:
-        print(f"Error during Q&A: {e}")
-        print("Check if Ollama is running and model is available.")
+answer = result["llm"]["replies"][0].text
+print(f"\nChatbot Answer: {answer}")
+print('-----------------------------------------------------------------------------------')
+print('-----------------------------------------------------------------------------------')
+result = query_pipeline.run({
+            "embedder": {"text": "How to create a windows instance"},
+            "prompt_builder": {"question": "How to create a windows instance"}
+        })
+answer = result["llm"]["replies"][0].text
+print(f"\nChatbot Answer: {answer}")
+print('-----------------------------------------------------------------------------------')
+print('-----------------------------------------------------------------------------------')

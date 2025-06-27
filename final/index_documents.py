@@ -9,7 +9,7 @@ from docling.document_converter import DocumentConverter
 import os
 
 # Load URLs
-crawled_document_path = "crawled_documents.txt"
+crawled_document_path = "./crawled_documents.txt"
 urls_to_crawl = []
 if os.path.exists(crawled_document_path):
     with open(crawled_document_path, "r", encoding="utf-8") as f:
