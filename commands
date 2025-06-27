@@ -4,11 +4,7 @@ ollama run deepseek-r1:1.5b
 python -m venv myenv
 source /myenv/bin/activate
 
-pip install "haystack-ai>=2.0.0" sentence-transformers
-pip install ollama-haystack
-
-
-
+pip install "haystack-ai>=2.0.0" sentence-transformers docling ollama-haystack Flask
 
 1. Install Ollama: Go to https://ollama.com/ and download/install Ollama for your OS.
 2. Pull a DeepSeek model using Ollama. For example, in your terminal:
@@ -19,3 +15,4 @@ pip install ollama-haystack
   pip install ollama-haystack   Corrected package name
 
 
+curl -X POST -H "Content-Type: application/json" -d '{"question": "How to create a linux instance"}' http://localhost:5000/chat
